@@ -21,14 +21,14 @@ type Person struct {
 }
 
 type Student struct {
-	Name  string
-	Books []string
+	Name      string   `mapstructure:"name"`
+	TextBooks []string `mapstructure:"text_books"`
 }
 
 func TestMerge(t *testing.T) {
 	type args struct {
 		dst    interface{}
-		srcMap map[string]interface{}
+		srcMap map[string]string
 		srcs   []interface{}
 	}
 	tests := []struct {
@@ -41,7 +41,7 @@ func TestMerge(t *testing.T) {
 			name: "Simple",
 			args: args{
 				dst:    &Simple{},
-				srcMap: map[string]interface{}{"F1": "10"},
+				srcMap: map[string]string{"F1": "10"},
 				srcs: []interface{}{
 					Simple{F1: 20, F2: "hello"},
 					Simple{F2: "hola"},
@@ -54,13 +54,25 @@ func TestMerge(t *testing.T) {
 			name: "Person",
 			args: args{
 				dst:    &Person{},
-				srcMap: map[string]interface{}{"Name": "Joe", "Address": map[string]interface{}{"City": "LA"}}, // Internal fields of
+				srcMap: map[string]string{"Name": "Joe", "Address.City": "LA"},
 				srcs: []interface{}{
 					Person{Name: "Pepe", Age: 30},
 					Person{Age: 20, Address: Address{City: "San Diego"}},
 				},
 			},
 			want:    &Person{Name: "Joe", Age: 30, Address: Address{City: "LA"}},
+			wantErr: false,
+		},
+		{
+			name: "Student",
+			args: args{
+				dst:    &Student{},
+				srcMap: map[string]string{"text_books": "Book1, Book2, 'The Book' "},
+				srcs: []interface{}{
+					Student{Name: "Pepe"},
+				},
+			},
+			want:    &Student{Name: "Pepe", TextBooks: []string{"Book1", "Book2", "The Book"}},
 			wantErr: false,
 		},
 	}
@@ -80,7 +92,7 @@ func TestMerge(t *testing.T) {
 func TestMergeMap(t *testing.T) {
 	type args struct {
 		dst     interface{}
-		srcMaps []map[string]interface{}
+		srcMaps []map[string]string
 	}
 	tests := []struct {
 		name    string
@@ -92,10 +104,10 @@ func TestMergeMap(t *testing.T) {
 			name: "Simple",
 			args: args{
 				dst: &Simple{},
-				srcMaps: []map[string]interface{}{
-					map[string]interface{}{"F1": "1"},
-					map[string]interface{}{"F1": "10", "F2": "ten"},
-					map[string]interface{}{"F2": "zero"},
+				srcMaps: []map[string]string{
+					map[string]string{"F1": "1"},
+					map[string]string{"F1": "10", "F2": "ten"},
+					map[string]string{"F2": "zero"},
 				},
 			},
 			want:    &Simple{F1: 1, F2: "ten"},
@@ -118,7 +130,7 @@ func TestMergeMap(t *testing.T) {
 func Test_mergeMap(t *testing.T) {
 	type args struct {
 		dst    interface{}
-		srcMap map[string]interface{}
+		srcMap map[string]string
 	}
 	tests := []struct {
 		name    string
@@ -128,7 +140,7 @@ func Test_mergeMap(t *testing.T) {
 	}{
 		{
 			name:    "Simple",
-			args:    args{dst: &Simple{}, srcMap: map[string]interface{}{"F1": "1", "F2": "one"}},
+			args:    args{dst: &Simple{}, srcMap: map[string]string{"F1": "1", "F2": "one"}},
 			want:    &Simple{F1: 1, F2: "one"},
 			wantErr: false,
 		},
