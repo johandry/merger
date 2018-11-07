@@ -1,11 +1,15 @@
 package merger
 
 import (
+	"log"
 	"strings"
 
 	"github.com/imdario/mergo"
 	"github.com/mitchellh/mapstructure"
 )
+
+// FieldSeparator separates the fields of a struct when defining paramete names
+const FieldSeparator = "__"
 
 // Merge merges the given map and optional structs into the dst structure
 func Merge(dst interface{}, srcMap map[string]string, srcs ...interface{}) error {
@@ -69,7 +73,9 @@ func TransformMap(srcMap map[string]string) map[string]interface{} {
 		} else {
 			i = v
 		}
-		if isStruct(k) {
+		if isStructField(k) {
+			m = transformToStructField(m, k, i)
+		} else if isJSONStruct(v) {
 			m = transformToStruct(m, k, i)
 		} else {
 			m[k] = i
@@ -94,14 +100,15 @@ func transformToSlice(v string) []string {
 	return values
 }
 
-func isStruct(v string) bool {
-	return strings.Contains(v, ".")
+func isStructField(k string) bool {
+	return strings.Contains(k, FieldSeparator)
 }
-func transformToStruct(m map[string]interface{}, k string, v interface{}) map[string]interface{} {
-	if strings.Contains(k, ".") {
-		keys := strings.Split(k, ".")
+func transformToStructField(m map[string]interface{}, k string, v interface{}) map[string]interface{} {
+	if strings.Contains(k, FieldSeparator) {
+		keys := strings.Split(k, FieldSeparator)
 		k0 := keys[0]
-		r := strings.Join(keys[1:], ".")
+		r := strings.Join(keys[1:], FieldSeparator)
+		log.Println(k0, r)
 
 		if _, ok := m[k0]; !ok {
 			m[k0] = make(map[string]interface{}, 0)
@@ -112,4 +119,11 @@ func transformToStruct(m map[string]interface{}, k string, v interface{}) map[st
 	}
 	m[k] = v
 	return m
+}
+
+func isJSONStruct(v string) bool {
+	return strings.HasPrefix(v, "{") && strings.HasSuffix(v, "}")
+}
+func transformToStruct(m map[string]interface{}, k string, v interface{}) map[string]interface{} {
+	return map[string]interface{}{}
 }

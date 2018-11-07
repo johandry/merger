@@ -1,8 +1,10 @@
-package merger
+package merger_test
 
 import (
 	"reflect"
 	"testing"
+
+	"github.com/johandry/merger"
 )
 
 type Simple struct {
@@ -10,19 +12,10 @@ type Simple struct {
 	F2 string
 }
 
-type Address struct {
-	City string
-}
-
 type Person struct {
 	Name    string
 	Age     int
 	Address Address
-}
-
-type Student struct {
-	Name      string   `mapstructure:"name"`
-	TextBooks []string `mapstructure:"text_books"`
 }
 
 func TestMerge(t *testing.T) {
@@ -54,7 +47,7 @@ func TestMerge(t *testing.T) {
 			name: "Person",
 			args: args{
 				dst:    &Person{},
-				srcMap: map[string]string{"Name": "Joe", "Address.City": "LA"},
+				srcMap: map[string]string{"Name": "Joe", "Address__City": "LA"},
 				srcs: []interface{}{
 					Person{Name: "Pepe", Age: 30},
 					Person{Age: 20, Address: Address{City: "San Diego"}},
@@ -78,7 +71,7 @@ func TestMerge(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := Merge(tt.args.dst, tt.args.srcMap, tt.args.srcs...)
+			err := merger.Merge(tt.args.dst, tt.args.srcMap, tt.args.srcs...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Merge() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -116,43 +109,12 @@ func TestMergeMap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := MergeMap(tt.args.dst, tt.args.srcMaps...)
+			err := merger.MergeMap(tt.args.dst, tt.args.srcMaps...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("MergeMap() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !reflect.DeepEqual(tt.args.dst, tt.want) {
 				t.Errorf("MergeMap() = %+v, want %+v", tt.args.dst, tt.want)
-			}
-		})
-	}
-}
-
-func Test_mergeMap(t *testing.T) {
-	type args struct {
-		dst    interface{}
-		srcMap map[string]string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    interface{}
-		wantErr bool
-	}{
-		{
-			name:    "Simple",
-			args:    args{dst: &Simple{}, srcMap: map[string]string{"F1": "1", "F2": "one"}},
-			want:    &Simple{F1: 1, F2: "one"},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := mergeMap(tt.args.dst, tt.args.srcMap)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("mergeMap() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if !reflect.DeepEqual(tt.args.dst, tt.want) {
-				t.Errorf("mergeMap() = %+v, want %+v", tt.args.dst, tt.want)
 			}
 		})
 	}
@@ -185,7 +147,7 @@ func TestMergeStruct(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := MergeStruct(tt.args.dst, tt.args.srcs...)
+			err := merger.MergeStruct(tt.args.dst, tt.args.srcs...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("MergeStruct() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -218,14 +180,15 @@ func TestTransformMap(t *testing.T) {
 			want: map[string]interface{}{
 				"Books":    []string{"B1", "B2", "B3"},
 				"Articles": []string{"A1", "A2", "A3"},
-				"Items":    []string{"I1", "I2", "Item number #3", "I4"}},
+				"Items":    []string{"I1", "I2", "Item number #3", "I4"},
+			},
 		},
 		{name: "Structs",
 			args: args{srcMap: map[string]string{
-				"Address.City":           "New York",
-				"Address.Country":        "US",
-				"Parents.Address.Zip":    "32123",
-				"Parents.Address.Planet": "Earth",
+				"Address__City":            "New York",
+				"Address__Country":         "US",
+				"Parents__Address__Zip":    "32123",
+				"Parents__Address__Planet": "Earth",
 			}},
 			want: map[string]interface{}{
 				"Address": map[string]interface{}{
@@ -241,7 +204,7 @@ func TestTransformMap(t *testing.T) {
 			},
 		},
 		{name: "Mixed",
-			args: args{srcMap: map[string]string{"IP": "192.168.1.0", "DNS.Servers": "[192.168.0.1, 192.168.0.2, 192.168.0.3]"}},
+			args: args{srcMap: map[string]string{"IP": "192.168.1.0", "DNS__Servers": "[192.168.0.1, 192.168.0.2, 192.168.0.3]"}},
 			want: map[string]interface{}{
 				"IP": "192.168.1.0",
 				"DNS": map[string]interface{}{
@@ -252,7 +215,7 @@ func TestTransformMap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := TransformMap(tt.args.srcMap); !reflect.DeepEqual(got, tt.want) {
+			if got := merger.TransformMap(tt.args.srcMap); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("TransformMap() = %v, want %v", got, tt.want)
 			}
 		})
