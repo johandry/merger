@@ -1,7 +1,8 @@
 package merger
 
 import (
-	"log"
+	"encoding/json"
+	"reflect"
 	"strings"
 
 	"github.com/imdario/mergo"
@@ -68,17 +69,23 @@ func TransformMap(srcMap map[string]string) map[string]interface{} {
 	m := make(map[string]interface{}, 0)
 	for k, v := range srcMap {
 		var i interface{}
-		if isSlice(v) {
+		switch {
+		case isSlice(v):
 			i = transformToSlice(v)
-		} else {
+		case isJSONStruct(v):
+			i = transformJSONToStruct(v)
+		default:
 			i = v
 		}
+
 		if isStructField(k) {
 			m = transformToStructField(m, k, i)
-		} else if isJSONStruct(v) {
-			m = transformToStruct(m, k, i)
 		} else {
-			m[k] = i
+			if m[k] != nil && isMap(i) {
+				m[k] = mergeTwoMaps(m[k].(map[string]interface{}), i.(map[string]interface{}), false)
+			} else {
+				m[k] = i
+			}
 		}
 	}
 
@@ -86,7 +93,7 @@ func TransformMap(srcMap map[string]string) map[string]interface{} {
 }
 
 func isSlice(v string) bool {
-	return strings.Contains(v, ",")
+	return strings.Contains(v, ",") && !isJSONStruct(v)
 }
 func transformToSlice(v string) []string {
 	v = strings.Trim(v, "[ ]")
@@ -104,19 +111,29 @@ func isStructField(k string) bool {
 	return strings.Contains(k, FieldSeparator)
 }
 func transformToStructField(m map[string]interface{}, k string, v interface{}) map[string]interface{} {
-	if strings.Contains(k, FieldSeparator) {
+	if isStructField(k) {
 		keys := strings.Split(k, FieldSeparator)
 		k0 := keys[0]
 		r := strings.Join(keys[1:], FieldSeparator)
-		log.Println(k0, r)
 
 		if _, ok := m[k0]; !ok {
 			m[k0] = make(map[string]interface{}, 0)
 		}
 
-		m[k0] = transformToStruct(m[k0].(map[string]interface{}), r, v)
+		m[k0] = transformToStructField(m[k0].(map[string]interface{}), r, v)
 		return m
 	}
+
+	if _, ok := m[k]; !ok {
+		m[k] = v
+		return m
+	}
+
+	if m[k] != nil && isMap(v) {
+		m[k] = mergeTwoMaps(m[k].(map[string]interface{}), v.(map[string]interface{}), false)
+		return m
+	}
+
 	m[k] = v
 	return m
 }
@@ -124,6 +141,36 @@ func transformToStructField(m map[string]interface{}, k string, v interface{}) m
 func isJSONStruct(v string) bool {
 	return strings.HasPrefix(v, "{") && strings.HasSuffix(v, "}")
 }
-func transformToStruct(m map[string]interface{}, k string, v interface{}) map[string]interface{} {
-	return map[string]interface{}{}
+func transformJSONToStruct(v string) map[string]interface{} {
+	var m map[string]interface{}
+	// Ignore error, if it's not a valid JSON return an empty map
+	json.Unmarshal([]byte(v), &m)
+	return m
+}
+
+func isMap(v interface{}) bool {
+	t := reflect.TypeOf(v).String()
+	return t == "map[string]interface {}" || t == "map[string]string"
+}
+
+func mergeTwoMaps(dstMap, srcMap map[string]interface{}, overwrite bool) map[string]interface{} {
+	for k := range srcMap {
+		// dstMap[k] doesn't have a value
+		if _, ok := dstMap[k]; !ok {
+			dstMap[k] = srcMap[k]
+			continue
+		}
+		// dstMap[k] and srcMap[k] are both maps, merge them
+		if isMap(dstMap[k]) && isMap(srcMap[k]) {
+			dstMap[k] = mergeTwoMaps(dstMap[k].(map[string]interface{}), srcMap[k].(map[string]interface{}), overwrite)
+			continue
+		}
+		// dstMap[k] or srcMap[k] is a maps and the other is not,
+		// or both are not maps, force the assigment if overwrite
+		if overwrite {
+			dstMap[k] = srcMap[k]
+		}
+	}
+
+	return dstMap
 }

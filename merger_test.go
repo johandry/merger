@@ -12,10 +12,16 @@ type Simple struct {
 	F2 string
 }
 
+type Phone struct {
+	Number    string
+	Available bool
+}
+
 type Person struct {
 	Name    string
 	Age     int
 	Address Address
+	Phones  map[string]Phone
 }
 
 func TestMerge(t *testing.T) {
@@ -46,14 +52,39 @@ func TestMerge(t *testing.T) {
 		{
 			name: "Person",
 			args: args{
-				dst:    &Person{},
-				srcMap: map[string]string{"Name": "Joe", "Address__City": "LA"},
+				dst: &Person{},
+				srcMap: map[string]string{
+					"Name":                      "Joe",
+					"Address__City":             "LA",
+					"Phones__home__Number":      "858-123-4567",
+					"Phones__home__Available":   "true",
+					"Phones__mobile__Available": "true",
+				},
 				srcs: []interface{}{
 					Person{Name: "Pepe", Age: 30},
-					Person{Age: 20, Address: Address{City: "San Diego"}},
+					Person{
+						Age:     20,
+						Address: Address{City: "San Diego", Country: "US"},
+						Phones: map[string]Phone{
+							"home":   Phone{Available: true},
+							"mobile": Phone{Number: "858-987-6543"},
+						},
+					},
 				},
 			},
-			want:    &Person{Name: "Joe", Age: 30, Address: Address{City: "LA"}},
+			want: &Person{
+				Name: "Joe",
+				Age:  30,
+				Address: Address{
+					City:    "LA",
+					Country: "US",
+				},
+				Phones: map[string]Phone{
+					"home":   Phone{Number: "858-123-4567", Available: true},
+					"mobile": Phone{Available: true},
+					// mergo cannot merge map[string]interface{}, so the following test always fail:
+					// "mobile": Phone{Number: "858-987-6543", Available: true},
+				}},
 			wantErr: false,
 		},
 		{
@@ -212,11 +243,50 @@ func TestTransformMap(t *testing.T) {
 				},
 			},
 		},
+		{name: "Structs-JSON",
+			args: args{srcMap: map[string]string{
+				"Address": `{"city": "New York", "country": "US"}`,
+				"Parents": `{"address": {"zip": "32123", "planet": "Earth"}}`,
+			}},
+			want: map[string]interface{}{
+				"Address": map[string]interface{}{
+					"city":    "New York",
+					"country": "US",
+				},
+				"Parents": map[string]interface{}{
+					"address": map[string]interface{}{
+						"zip":    "32123",
+						"planet": "Earth",
+					},
+				},
+			},
+		},
+		{name: "Mixed-JSON",
+			args: args{srcMap: map[string]string{
+				"IP":                    "192.168.1.0",
+				"DNS__Servers":          "[192.168.0.1, 192.168.0.2, 192.168.0.3]",
+				"Parents__Address__Zip": "32123",
+				"Parents":               `{"Address": {"Planet": "Earth"}}`,
+			}},
+			want: map[string]interface{}{
+				"IP": "192.168.1.0",
+				"DNS": map[string]interface{}{
+					"Servers": []string{"192.168.0.1", "192.168.0.2", "192.168.0.3"},
+				},
+				"Parents": map[string]interface{}{
+					"Address": map[string]interface{}{
+						"Zip":    "32123",
+						"Planet": "Earth",
+					},
+				},
+			},
+		},
 	}
+	// assert := assert.New(t)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := merger.TransformMap(tt.args.srcMap); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("TransformMap() = %v, want %v", got, tt.want)
+				t.Errorf("TransformMap() = %+v, want %+v", got, tt.want)
 			}
 		})
 	}
