@@ -28,6 +28,15 @@ type Student struct {
 	GPA       float32          `json:"gpa" mapstructure:"gpa"`
 }
 
+// RefreshGPA recalculate the student GPA from the existing grades
+func (s *Student) RefreshGPA() {
+	var total float32
+	for _, grade := range s.Grades {
+		total = total + grade.Number
+	}
+	s.GPA = total / float32(len(s.Grades))
+}
+
 var configFromFile string
 
 func init() {
@@ -35,8 +44,8 @@ func init() {
 	// i.e. export EXAMPLE_name=John
 	os.Setenv("EXAMPLE_name", "John")
 	os.Setenv("EXAMPLE_books", "B1,B2, B3, 'The Book', B4")
-	os.Setenv("EXAMPLE_address:City", "San Diego")
-	os.Setenv("EXAMPLE_address:Country", "US")
+	os.Setenv("EXAMPLE_address__City", "San Diego")
+	os.Setenv("EXAMPLE_address__Country", "US")
 
 	configFromFile = `{"name": "Mary", "address": {"city": "San Diego", "country": "US"}}`
 }
@@ -77,6 +86,15 @@ func Example() {
 		log.Fatal(fmt.Errorf("Failed to merge the studens information. %s", err))
 	}
 
-	fmt.Printf("%+v", student)
-	// Output: {Name:John TextBooks:[] Address:{City:San Diego Country:US} Grades:map[Computer Science:{Teacher:Dr. Steve Number:99.99} Science:{Teacher:Dr. Smith Number:89.99}] GPA:0}
+	student.RefreshGPA()
+
+	fmt.Printf("Name: %s, Books: %s, Address: %+v, Computer Science Grade: %+v, Science Grade: %+v, GPA: %f",
+		student.Name,
+		student.TextBooks,
+		student.Address,
+		student.Grades["Computer Science"],
+		student.Grades["Science"],
+		student.GPA,
+	)
+	// Output: Name: John, Books: [], Address: {City:San Diego Country:US}, Computer Science Grade: {Teacher:Dr. Steve Number:99.99}, Science Grade: {Teacher:Dr. Smith Number:89.99}, GPA: 94.989998
 }
