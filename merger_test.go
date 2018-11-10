@@ -37,6 +37,26 @@ func TestMerge(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name: "Zero",
+			args: args{
+				dst:    &Simple{},
+				srcMap: nil,
+				srcs:   nil,
+			},
+			want:    &Simple{},
+			wantErr: false,
+		},
+		{
+			name: "Empty",
+			args: args{
+				dst:    &Simple{},
+				srcMap: map[string]string{},
+				srcs:   []interface{}{},
+			},
+			want:    &Simple{},
+			wantErr: false,
+		},
+		{
 			name: "Simple",
 			args: args{
 				dst:    &Simple{},
