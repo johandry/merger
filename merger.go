@@ -93,7 +93,7 @@ func TransformMap(srcMap map[string]string) map[string]interface{} {
 }
 
 func isSlice(v string) bool {
-	return strings.Contains(v, ",") && !isJSONStruct(v)
+	return (strings.Contains(v, ",") || (strings.HasPrefix(v, "[") && strings.HasSuffix(v, "]"))) && !isJSONStruct(v)
 }
 func transformToSlice(v string) []string {
 	v = strings.Trim(v, "[ ]")

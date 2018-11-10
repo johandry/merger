@@ -224,11 +224,13 @@ func TestTransformMap(t *testing.T) {
 		},
 		{name: "Slices",
 			args: args{srcMap: map[string]string{
+				"OneItem":  "[Item]",
 				"Books":    "  B1,B2, B3",
 				"Articles": "[A1, A2, A3]  ",
 				"Items":    "  [  I1  , I2,  'Item number #3'   ,   I4  ]  ",
 			}},
 			want: map[string]interface{}{
+				"OneItem":  []string{"Item"},
 				"Books":    []string{"B1", "B2", "B3"},
 				"Articles": []string{"A1", "A2", "A3"},
 				"Items":    []string{"I1", "I2", "Item number #3", "I4"},
