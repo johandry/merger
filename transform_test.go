@@ -206,6 +206,8 @@ var movie02Map = map[string]string{
 }
 
 func TestTransformToMap(t *testing.T) {
+	i := 10
+
 	tests := []struct {
 		name    string
 		v       interface{}
@@ -304,6 +306,22 @@ func TestTransformToMap(t *testing.T) {
 			want: map[string]string{
 				"empty":    "[]",
 				"notempty": "[a, b]",
+			},
+			wantErr: false,
+		},
+		{name: "unexported elements & pointer",
+			v: &struct {
+				private    int
+				PublicList []string
+				Ptr        *int
+			}{
+				private:    10,
+				PublicList: []string{"a", "b"},
+				Ptr:        &i,
+			},
+			want: map[string]string{
+				"publiclist": "[a, b]",
+				"ptr":        "10",
 			},
 			wantErr: false,
 		},

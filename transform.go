@@ -188,6 +188,10 @@ func getName(field reflect.StructField, tagNames []string) (name string, ignore 
 }
 
 func appendTo(name string, m map[string]string, v reflect.Value, tagNames []string) map[string]string {
+	if !v.CanInterface() {
+		return m
+	}
+
 	val := reflect.ValueOf(v.Interface())
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -221,7 +225,7 @@ func appendTo(name string, m map[string]string, v reflect.Value, tagNames []stri
 			m[name] = list
 		}
 	default:
-		value := v.Interface()
+		value := val.Interface()
 		m[name] = fmt.Sprintf("%v", value)
 	}
 
