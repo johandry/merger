@@ -119,6 +119,21 @@ func TestMerge(t *testing.T) {
 			want:    &Student{Name: "Pepe", TextBooks: []string{"Book1", "Book2", "The Book"}},
 			wantErr: false,
 		},
+		// {
+		// 	name: "Movie01",
+		// 	args: args{
+		// 		dst:    &Movie{},
+		// 		srcMap: movie01Map,
+		// 		srcs: []interface{}{
+		// 			Movie{
+		// 				Comment:   "Good movie, but this comment goes to the void", // The comment is not in the map
+		// 				Directors: movie01.Directors,                               // It's not possible to create a slice of struct from a map
+		// 			},
+		// 		},
+		// 	},
+		// 	want:    &movie01,
+		// 	wantErr: false,
+		// },
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -204,111 +219,6 @@ func TestMergeStruct(t *testing.T) {
 			}
 			if !reflect.DeepEqual(tt.args.dst, tt.want) {
 				t.Errorf("MergeStruct() = %+v, want %+v", tt.args.dst, tt.want)
-			}
-		})
-	}
-}
-
-func TestTransformMap(t *testing.T) {
-	type args struct {
-		srcMap map[string]string
-	}
-	tests := []struct {
-		name string
-		args args
-		want map[string]interface{}
-	}{
-		{name: "Simple",
-			args: args{srcMap: map[string]string{"F1": "20", "F2": "Text", "F3": "True"}},
-			want: map[string]interface{}{"F1": "20", "F2": "Text", "F3": "True"},
-		},
-		{name: "Slices",
-			args: args{srcMap: map[string]string{
-				"OneItem":  "[Item]",
-				"Books":    "  B1,B2, B3",
-				"Articles": "[A1, A2, A3]  ",
-				"Items":    "  [  I1  , I2,  'Item number #3'   ,   I4  ]  ",
-			}},
-			want: map[string]interface{}{
-				"OneItem":  []string{"Item"},
-				"Books":    []string{"B1", "B2", "B3"},
-				"Articles": []string{"A1", "A2", "A3"},
-				"Items":    []string{"I1", "I2", "Item number #3", "I4"},
-			},
-		},
-		{name: "Structs",
-			args: args{srcMap: map[string]string{
-				"Address__City":            "New York",
-				"Address__Country":         "US",
-				"Parents__Address__Zip":    "32123",
-				"Parents__Address__Planet": "Earth",
-			}},
-			want: map[string]interface{}{
-				"Address": map[string]interface{}{
-					"City":    "New York",
-					"Country": "US",
-				},
-				"Parents": map[string]interface{}{
-					"Address": map[string]interface{}{
-						"Zip":    "32123",
-						"Planet": "Earth",
-					},
-				},
-			},
-		},
-		{name: "Mixed",
-			args: args{srcMap: map[string]string{"IP": "192.168.1.0", "DNS__Servers": "[192.168.0.1, 192.168.0.2, 192.168.0.3]"}},
-			want: map[string]interface{}{
-				"IP": "192.168.1.0",
-				"DNS": map[string]interface{}{
-					"Servers": []string{"192.168.0.1", "192.168.0.2", "192.168.0.3"},
-				},
-			},
-		},
-		{name: "Structs-JSON",
-			args: args{srcMap: map[string]string{
-				"Address": `{"city": "New York", "country": "US"}`,
-				"Parents": `{"address": {"zip": "32123", "planet": "Earth"}}`,
-			}},
-			want: map[string]interface{}{
-				"Address": map[string]interface{}{
-					"city":    "New York",
-					"country": "US",
-				},
-				"Parents": map[string]interface{}{
-					"address": map[string]interface{}{
-						"zip":    "32123",
-						"planet": "Earth",
-					},
-				},
-			},
-		},
-		{name: "Mixed-JSON",
-			args: args{srcMap: map[string]string{
-				"IP":                    "192.168.1.0",
-				"DNS__Servers":          "[192.168.0.1, 192.168.0.2, 192.168.0.3]",
-				"Parents__Address__Zip": "32123",
-				"Parents":               `{"Address": {"Planet": "Earth"}}`,
-			}},
-			want: map[string]interface{}{
-				"IP": "192.168.1.0",
-				"DNS": map[string]interface{}{
-					"Servers": []string{"192.168.0.1", "192.168.0.2", "192.168.0.3"},
-				},
-				"Parents": map[string]interface{}{
-					"Address": map[string]interface{}{
-						"Zip":    "32123",
-						"Planet": "Earth",
-					},
-				},
-			},
-		},
-	}
-	// assert := assert.New(t)
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := merger.TransformMap(tt.args.srcMap); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("TransformMap() = %+v, want %+v", got, tt.want)
 			}
 		})
 	}
