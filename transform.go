@@ -210,11 +210,14 @@ func appendTo(name string, m map[string]string, v reflect.Value, tagNames []stri
 			// return m, fmt.Errorf("cannot map a slice/array of struct, map or slice/array")
 		default:
 			list := "["
-			for i := 0; i < val.Len()-1; i++ {
-				list = list + fmt.Sprintf("%v", val.Index(i).Interface()) + ", "
+			if len := val.Len(); len > 0 {
+				var i int
+				for i = 0; i < len-1; i++ {
+					list = list + fmt.Sprintf("%v", val.Index(i).Interface()) + ", "
+				}
+				list = list + fmt.Sprintf("%v", val.Index(i).Interface())
 			}
-			i := val.Len() - 1
-			list = list + fmt.Sprintf("%v]", val.Index(i).Interface())
+			list = list + "]"
 			m[name] = list
 		}
 	default:

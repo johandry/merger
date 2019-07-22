@@ -293,6 +293,20 @@ func TestTransformToMap(t *testing.T) {
 			want:    movie02Map,
 			wantErr: false,
 		},
+		{name: "empty list",
+			v: &struct {
+				Empty    []int
+				NotEmpty []string
+			}{
+				Empty:    []int{},
+				NotEmpty: []string{"a", "b"},
+			},
+			want: map[string]string{
+				"empty":    "[]",
+				"notempty": "[a, b]",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
